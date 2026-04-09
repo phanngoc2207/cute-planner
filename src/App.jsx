@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 /* ═══════════════════════════════════════════════════════════════
    🌸 CUTE LIFE PLANNER - Kawaii Edition
@@ -52,6 +52,7 @@ function useStore(key, init) {
   }, [s, key]);
   return [s, setS];
 }
+
 /* ── Inject global styles ─────────────────────────────────────── */
 const SID = "kawaii-css-v4";
 if (typeof document !== "undefined" && !document.getElementById(SID)) {
@@ -87,9 +88,9 @@ const DEF = {
     { id: uid(), text: "Gửi email cho thầy hướng dẫn", done: false, pri: "med" },
   ],
   schedule: [
-    { id: uid(), title: "Lớp Lão khoa", time: "07:30", end: "09:30", day: 1, color: C.pink },
-    { id: uid(), title: "Trực bệnh viện", time: "13:00", end: "17:00", day: 2, color: C.mint },
-    { id: uid(), title: "Seminar TBS", time: "09:00", end: "11:00", day: 4, color: C.lav },
+    { id: uid(), title: "Lớp Lão khoa", time: "07:30", end: "09:30", day: 1, color: C.pink, type: "weekly" },
+    { id: uid(), title: "Trực bệnh viện", time: "13:00", end: "17:00", day: 2, color: C.mint, type: "weekly" },
+    { id: uid(), title: "Seminar TBS", time: "09:00", end: "11:00", day: 4, color: C.lav, type: "weekly" },
   ],
   reminders: [
     { id: uid(), text: "Nộp đề cương nghiên cứu", dt: "2026-04-15T09:00", done: false },
@@ -117,8 +118,8 @@ export default function App() {
   const upd = (k, fn) => setData(d => ({ ...d, [k]: typeof fn === "function" ? fn(d[k]) : fn }));
 
   /* ── Shared UI atoms ──────────────────────────────────────── */
-  const Card = ({ children, style: sx, delay = 0, className = "" }) => (
-    <div className={`fIn ${className}`} style={{ background: C.card, borderRadius: 20, padding: 16, boxShadow: C.shadow, border: `1px solid ${C.borderLight}`, animationDelay: `${delay}ms`, ...sx }}>{children}</div>
+  const Card = ({ children, style: sx, delay = 0, className = "", onClick }) => (
+    <div className={`fIn ${className}`} style={{ background: C.card, borderRadius: 20, padding: 16, boxShadow: C.shadow, border: `1px solid ${C.borderLight}`, animationDelay: `${delay}ms`, ...sx }} onClick={onClick}>{children}</div>
   );
   const Badge = ({ children, bg, color }) => (
     <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 8, background: bg, color }}>{children}</span>
@@ -290,6 +291,57 @@ export default function App() {
             </div>
           </Card>
         ) : <AddRow label="Thêm thói quen mới" onClick={() => setAdding(true)} />}
+
+        {/* 30-day tracker */}
+        {data.habits.length > 0 && (() => {
+          const days30 = Array.from({ length: 30 }, (_, i) => {
+            const d = new Date(); d.setDate(d.getDate() - (29 - i));
+            return d.toISOString().slice(0, 10);
+          });
+          return (
+            <Card style={{ marginTop: 14, marginBottom: 4, padding: "14px 14px 10px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 14 }}>📊 Tracker 30 ngày</div>
+              {data.habits.map(h => {
+                const count = days30.filter(d => h.log[d]).length;
+                const pctH = Math.round(count / 30 * 100);
+                return (
+                  <div key={h.id} style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                      <span style={{ fontSize: 13 }}>{h.icon}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: C.textSub, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
+                      <span style={{ fontSize: 10, color: pctH >= 70 ? C.mint : pctH >= 40 ? C.peach : C.textMuted, fontWeight: 700 }}>{count}/30</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 2 }}>
+                      {days30.map((d, idx) => {
+                        const done = !!h.log[d];
+                        const isT = d === td2;
+                        return (
+                          <div key={idx} style={{
+                            flex: 1, height: 18, borderRadius: 3,
+                            background: done ? `linear-gradient(135deg, ${C.pink}CC, ${C.peach}CC)` : C.borderLight,
+                            border: isT ? `1.5px solid ${C.pink}` : "1.5px solid transparent",
+                          }} />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+                <span style={{ fontSize: 9, color: C.textMuted }}>← 30 ngày trước</span>
+                <span style={{ fontSize: 9, color: C.textMuted, fontWeight: 700, color: C.pink }}>Hôm nay →</span>
+              </div>
+              <div style={{ display: "flex", gap: 12, marginTop: 8, justifyContent: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: C.textMuted }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${C.pink}CC, ${C.peach}CC)` }} /> Hoàn thành
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: C.textMuted }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: C.borderLight, border: `1px solid ${C.border}` }} /> Bỏ qua
+                </div>
+              </div>
+            </Card>
+          );
+        })()}
       </div>
     );
   };
@@ -357,56 +409,155 @@ export default function App() {
   };
 
   /* ═══════════════════════════════════════════════════════════
-     📅 SCHEDULE TAB
+     📅 SCHEDULE TAB — Monthly calendar + day events
      ═══════════════════════════════════════════════════════════ */
   const Schedule = () => {
+    const now = new Date();
+    const [viewYear, setViewYear] = useState(now.getFullYear());
+    const [viewMonth, setViewMonth] = useState(now.getMonth());
+    const [selDate, setSelDate] = useState(td);
     const [adding, setAdding] = useState(false);
-    const [nt, setNt] = useState(""); const [nT, setNT] = useState("08:00"); const [nE, setNE] = useState("09:00");
-    const [nD, setND] = useState(1); const [nC, setNC] = useState(C.pink);
+    const [nt, setNt] = useState("");
+    const [nT, setNT] = useState("08:00"); const [nE, setNE] = useState("09:00");
+    const [nType, setNType] = useState("weekly");
+    const [nD, setND] = useState(1);
+    const [nDate, setNDate] = useState(td);
+    const [nC, setNC] = useState(C.pink);
     const colors = [C.pink, C.mint, C.lav, C.peach, C.sky, C.coral];
 
-    const add = () => { if (!nt.trim()) return; upd("schedule", s => [...s, { id: uid(), title: nt, time: nT, end: nE, day: nD, color: nC }]); setNt(""); setAdding(false); };
     const del = id => upd("schedule", s => s.filter(x => x.id !== id));
-    const todayD = new Date().getDay();
+    const add = () => {
+      if (!nt.trim()) return;
+      const ev = { id: uid(), title: nt, time: nT, end: nE, color: nC, type: nType };
+      if (nType === "weekly") ev.day = nD; else ev.date = nDate;
+      upd("schedule", s => [...s, ev]);
+      setNt(""); setAdding(false);
+    };
 
-    const grouped = {};
-    for (let i = 0; i < 7; i++) grouped[i] = [];
-    data.schedule.forEach(s => grouped[s.day]?.push(s));
-    Object.keys(grouped).forEach(k => grouped[k].sort((a, b) => a.time.localeCompare(b.time)));
+    // Events for a given date string
+    const getEvents = (dateStr) => {
+      const dow = new Date(dateStr + "T12:00:00").getDay();
+      const weekly = data.schedule.filter(e => (e.type === "weekly" || !e.type) && e.day === dow);
+      const once = data.schedule.filter(e => e.type === "once" && e.date === dateStr);
+      return [...weekly, ...once].sort((a, b) => a.time.localeCompare(b.time));
+    };
+
+    // Calendar grid (Mon-first)
+    const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+    const offset = firstDow === 0 ? 6 : firstDow - 1;
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const calDays = [...Array(offset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+
+    const hasEv = (d) => {
+      const ds = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      return getEvents(ds).length > 0;
+    };
+
+    const prevM = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); } else setViewMonth(m => m - 1); };
+    const nextM = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); } else setViewMonth(m => m + 1); };
+
+    const selEvents = getEvents(selDate);
+    const selLabel = new Date(selDate + "T12:00:00").toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" });
 
     return (
       <div style={{ padding: "0 18px 110px" }}>
         <div className="fIn" style={{ padding: "16px 0 12px" }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: C.text }}>📅 Thời gian biểu</div>
-          <div style={{ fontSize: 13, color: C.textSub }}>Lịch học & công việc hàng tuần</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: C.text }}>📅 Lịch</div>
+          <div style={{ fontSize: 13, color: C.textSub }}>Chạm vào ngày để xem sự kiện</div>
         </div>
 
-        {[1, 2, 3, 4, 5, 6, 0].map(day => {
-          const items = grouped[day]; if (!items.length) return null;
-          const isT = day === todayD;
-          return (
-            <div key={day} style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: isT ? C.pink : C.textMuted, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: 1 }}>
-                {isT && <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.pink, animation: "glow 2s ease infinite" }} />}
-                {dayNamesF[day]} {isT && "· Hôm nay ✨"}
-              </div>
-              {items.map((s, i) => (
-                <Card key={s.id} delay={i * 40} style={{ display: "flex", gap: 12, marginBottom: 8, padding: "12px 14px", borderLeft: `5px solid ${s.color}` }}>
-                  <div style={{ minWidth: 52 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{s.time}</div>
-                    <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace" }}>{s.end}</div>
+        {/* Monthly calendar */}
+        <Card style={{ padding: "14px 12px" }}>
+          {/* Month nav */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <button className="cute-btn" onClick={prevM} style={{ padding: "6px 16px", background: C.cardAlt, color: C.text, fontSize: 18, lineHeight: 1 }}>‹</button>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Tháng {viewMonth + 1}/{viewYear}</div>
+            <button className="cute-btn" onClick={nextM} style={{ padding: "6px 16px", background: C.cardAlt, color: C.text, fontSize: 18, lineHeight: 1 }}>›</button>
+          </div>
+          {/* Day-of-week headers */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 6 }}>
+            {["T2","T3","T4","T5","T6","T7","CN"].map(d => (
+              <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: C.textMuted, padding: "2px 0" }}>{d}</div>
+            ))}
+          </div>
+          {/* Day cells */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+            {calDays.map((d, i) => {
+              if (!d) return <div key={`e${i}`} />;
+              const ds = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+              const isToday = ds === td;
+              const isSel = ds === selDate;
+              const ev = hasEv(d);
+              return (
+                <div key={i} onClick={() => setSelDate(ds)} style={{
+                  textAlign: "center", padding: "7px 2px 5px", borderRadius: 11, cursor: "pointer",
+                  background: isSel ? C.pink : isToday ? C.pinkSoft : "transparent",
+                  border: isToday && !isSel ? `2px solid ${C.pinkLight}` : "2px solid transparent",
+                  transition: "all .15s",
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: isSel || isToday ? 800 : 500, color: isSel ? "#fff" : isToday ? C.pink : C.text, lineHeight: 1 }}>{d}</div>
+                  <div style={{ height: 5, display: "flex", justifyContent: "center", alignItems: "center", marginTop: 2 }}>
+                    {ev && <div style={{ width: 4, height: 4, borderRadius: "50%", background: isSel ? "rgba(255,255,255,.8)" : C.pink }} />}
                   </div>
-                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: C.text }}>{s.title}</div>
-                  <div onClick={() => del(s.id)} style={{ color: C.textMuted, cursor: "pointer", fontSize: 13 }}>✕</div>
-                </Card>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* Selected day panel */}
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.pink, textTransform: "capitalize" }}>{selLabel}{selDate === td && " ✨"}</div>
+              <div style={{ fontSize: 11, color: C.textMuted }}>{selEvents.length} sự kiện</div>
+            </div>
+            <button className="cute-btn" onClick={() => { setNDate(selDate); setAdding(true); }} style={{ padding: "7px 14px", background: C.pinkSoft, color: C.pink, border: `1.5px solid ${C.pinkLight}`, fontSize: 12 }}>+ Thêm</button>
+          </div>
+
+          {selEvents.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px 0 10px", color: C.textMuted }}>
+              <div style={{ fontSize: 30, marginBottom: 6 }}>📭</div>
+              <div style={{ fontSize: 13 }}>Không có sự kiện nào</div>
+            </div>
+          ) : selEvents.map((s, i) => (
+            <Card key={s.id} delay={i * 40} style={{ display: "flex", gap: 12, marginBottom: 8, padding: "12px 14px", borderLeft: `5px solid ${s.color}` }}>
+              <div style={{ minWidth: 50 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{s.time}</div>
+                <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace" }}>{s.end}</div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{s.title}</div>
+                {(s.type === "weekly" || !s.type) && <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>🔁 Lặp hàng tuần</div>}
+              </div>
+              <div onClick={() => del(s.id)} style={{ color: C.textMuted, cursor: "pointer", fontSize: 13 }}>✕</div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Add form */}
+        {adding && (
+          <Card style={{ border: `2px solid ${C.pinkLight}`, marginTop: 8 }}>
+            <Input value={nt} onChange={e => setNt(e.target.value)} placeholder="Tên sự kiện..." autoFocus style={{ marginBottom: 10 }} onKeyDown={e => e.key === "Enter" && add()} />
+            {/* Type toggle */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+              {[{ k: "weekly", l: "🔁 Hàng tuần" }, { k: "once", l: "📅 Một lần" }].map(x => (
+                <button key={x.k} className="cute-btn" onClick={() => setNType(x.k)} style={{ flex: 1, padding: "8px 0", fontSize: 12, background: nType === x.k ? C.pinkSoft : C.cardAlt, color: nType === x.k ? C.pink : C.textSub, border: nType === x.k ? `2px solid ${C.pinkLight}` : `2px solid ${C.border}`, borderRadius: 10 }}>{x.l}</button>
               ))}
             </div>
-          );
-        })}
-
-        {adding ? (
-          <Card style={{ border: `2px solid ${C.pinkLight}` }}>
-            <Input value={nt} onChange={e => setNt(e.target.value)} placeholder="Tên lịch..." autoFocus style={{ marginBottom: 10 }} />
+            {/* Weekly: pick day / Once: pick date */}
+            {nType === "weekly" ? (
+              <div style={{ display: "flex", gap: 4, marginBottom: 10, flexWrap: "wrap" }}>
+                {[1, 2, 3, 4, 5, 6, 0].map(d => (
+                  <button key={d} className="cute-btn" onClick={() => setND(d)} style={{ padding: "6px 10px", background: nD === d ? C.pinkSoft : C.cardAlt, color: nD === d ? C.pink : C.textSub, border: nD === d ? `2px solid ${C.pinkLight}` : `2px solid ${C.border}`, borderRadius: 10, fontSize: 11 }}>{dayNamesF[d].replace("Thứ ", "T")}</button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4, fontWeight: 600 }}>Ngày cụ thể</div>
+                <input type="date" value={nDate} onChange={e => setNDate(e.target.value)} style={{ width: "100%", background: C.cardAlt, border: `2px solid ${C.border}`, borderRadius: 12, color: C.text, padding: "8px 10px", fontSize: 14, fontFamily: "'Quicksand',sans-serif" }} />
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4, fontWeight: 600 }}>Bắt đầu</div>
@@ -417,12 +568,7 @@ export default function App() {
                 <input type="time" value={nE} onChange={e => setNE(e.target.value)} style={{ width: "100%", background: C.cardAlt, border: `2px solid ${C.border}`, borderRadius: 12, color: C.text, padding: "8px 10px", fontSize: 14, fontFamily: "'Quicksand',sans-serif" }} />
               </div>
             </div>
-            <div style={{ display: "flex", gap: 5, marginBottom: 10, flexWrap: "wrap" }}>
-              {[1, 2, 3, 4, 5, 6, 0].map(d => (
-                <button key={d} className="cute-btn" onClick={() => setND(d)} style={{ padding: "6px 11px", background: nD === d ? C.pinkSoft : C.cardAlt, color: nD === d ? C.pink : C.textSub, border: nD === d ? `2px solid ${C.pinkLight}` : `2px solid ${C.border}`, borderRadius: 10, fontSize: 12 }}>{dayNamesF[d].replace("Thứ ", "T")}</button>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 7, marginBottom: 12 }}>
               {colors.map(c => <div key={c} onClick={() => setNC(c)} style={{ width: 30, height: 30, borderRadius: 10, background: c, cursor: "pointer", border: nC === c ? "3px solid #fff" : "3px solid transparent", boxShadow: nC === c ? `0 0 0 2px ${c}` : "none" }} />)}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -430,7 +576,7 @@ export default function App() {
               <button className="cute-btn" onClick={() => setAdding(false)} style={{ flex: 1, background: C.cardAlt, color: C.textSub, padding: "11px 0" }}>Huỷ</button>
             </div>
           </Card>
-        ) : <AddRow label="Thêm lịch mới" onClick={() => setAdding(true)} />}
+        )}
       </div>
     );
   };
